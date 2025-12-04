@@ -1,8 +1,8 @@
 # Vesting Controller Vulnerability — Full Report
 
 ## 📖 Overview
-
-- **Affected contract:** https://github.com/Legion-Team/legion-protocol-contracts/blob/master/src/vesting/LegionLinearVesting.sol
+- **Github guide:** https://github.com/Legion-Team/legion-protocol-contracts/blob/master/src/vesting/LegionLinearVesting.sol
+- **Affected contract:** src/vesting/LegionLinearVesting.sol
 - **Vulnerability:** Controller can reassign beneficiary (owner) → steal all vested tokens  
 - **Severity:** High — total loss of funds  
 - **Status:** Unpatched (as of [commit hash])
