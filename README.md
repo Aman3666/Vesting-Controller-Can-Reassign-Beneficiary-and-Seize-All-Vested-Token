@@ -1,4 +1,4 @@
-# Vesting Controller Vulnerability — Full Report
+# Vesting Controller Vulnerability 
 
 ## 📖 Overview
 - **Github guide:** https://github.com/Legion-Team/legion-protocol-contracts/blob/master/src/vesting/LegionLinearVesting.sol
