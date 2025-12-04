@@ -1,28 +1,34 @@
-# Vesting-Controller-Can-Reassign-Beneficiary-and-Seize-All-Vested-Token
-Affected Contract
-src/vesting/LegionLinearVesting.sol
+# Vesting Controller Vulnerability — Full Report
 
+## 📖 Overview
 
-Source:
-https://github.com/Legion-Team/legion-protocol-contracts/blob/master/src/vesting/LegionLinearVesting.sol#L103-L113
+- **Affected contract:** https://github.com/Legion-Team/legion-protocol-contracts/blob/master/src/vesting/LegionLinearVesting.sol
+- **Vulnerability:** Controller can reassign beneficiary (owner) → steal all vested tokens  
+- **Severity:** High — total loss of funds  
+- **Status:** Unpatched (as of [commit hash])
 
-Severity
+---
 
-High — Total loss of funds
+## 🔎 Root Cause
 
-Root Cause
-1. OpenZeppelin sets owner = beneficiary
+1. `owner() == beneficiary` in OpenZeppelin’s `VestingWalletUpgradeable`.  
+2. `release()` transfers to `owner()`.  
+3. `emergencyTransferOwnership()` allows controller to change `owner()` arbitrarily.
 
-https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/finance/VestingWalletUpgradeable.sol#L53-L72
+See full details below.
 
-2. Release sends tokens to owner()
+---
 
-https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/finance/VestingWalletUpgradeable.sol#L115-L137
+## 🚨 Full Description
 
-3. Legion lets controller change the owner (beneficiary)
+### 1. Initialization  
+- `__VestingWallet_init(beneficiary, …)` sets `owner = beneficiary`.  
 
-This function allows full takeover:
+### 2. Token/ETH Release  
+- `release(token)` / `release()` sends to `owner()`.  
 
+### 3. Dangerous Ownership Transfer  
+```solidity
 function emergencyTransferOwnership(address newOwner)
     external
     onlyVestingController
@@ -30,44 +36,8 @@ function emergencyTransferOwnership(address newOwner)
     _transferOwnership(newOwner);
 }
 
+```
 
-Source:
-https://github.com/Legion-Team/legion-protocol-contracts/blob/master/src/vesting/LegionLinearVesting.sol#L103-L113
+### Impact
 
-Exploit Scenario
-
-Alice is the beneficiary
-
-Tokens are deposited
-
-Controller calls emergencyTransferOwnership(attacker)
-
-Anyone calls release(token)
-
-All vested tokens go to the attacker instead of Alice
-
-Result: Full theft. No revert.
-
-Impact
-
-Controller (or compromised controller) can steal all user vesting
-
-Redirects all ERC20 + ETH to attacker
-
-Breaks user trust assumptions
-
-All deployed vesting contracts are at risk
-
-Recommended Fix
-
-Remove the emergencyTransferOwnership function
-or
-
-Require beneficiary signature approval
-or
-
-Add timelock + 2-step ownership transfer
-
-Conclusion
-
-This vulnerability enables complete takeover of vesting contracts and total loss of user funds. Immediate mitigation is required.
+This function allows the vestingController to change the contract owner at any time. Since `owner()` is also the beneficiary in `VestingWalletUpgradeable`, replacing the owner immediately replaces the beneficiary. As a result, all vested and future vesting releases are redirected to the `newOwner` address. This enables a complete takeover of the vesting contract and allows an attacker (or compromised controller) to steal all vested tokens in a single step, without user approval or any security checks.
